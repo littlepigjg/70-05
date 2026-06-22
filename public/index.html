@@ -56,6 +56,12 @@
         <input type="text" id="customCode" placeholder="留空则自动生成" maxlength="8">
       </div>
       <div class="hint" style="margin-left: 135px;">4-8位大写字母和数字，留空自动生成</div>
+
+      <div class="setting-row">
+        <label for="accessPassword">访问密码</label>
+        <input type="password" id="accessPassword" placeholder="留空则不设置密码" maxlength="32">
+      </div>
+      <div class="hint" style="margin-left: 135px;">4-32位，下载时需要输入此密码，与提取码独立</div>
     </div>
 
     <div class="progress-container" id="progressContainer">
@@ -74,6 +80,7 @@
       <div class="result-info">📦 大小：<span id="resultFileSize"></span></div>
       <div class="result-info">⏰ 有效期至：<span id="resultExpiry"></span></div>
       <div class="result-info">🔢 可下载次数：<span id="resultMaxDownloads"></span></div>
+      <div class="result-info" id="resultPasswordInfo">🔐 访问密码：<span id="resultHasPassword"></span></div>
       <div class="result-link" id="resultLink" title="点击复制链接"></div>
       <button class="btn copy-btn" id="copyLinkBtn">复制链接</button>
       <button class="btn copy-btn" id="copyCodeBtn" style="margin-top: 10px;">复制提取码</button>

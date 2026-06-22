@@ -36,6 +36,7 @@
               <th>已下载</th>
               <th>最大次数</th>
               <th>状态</th>
+              <th>密码</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -73,6 +74,28 @@
       <a href="/" style="color: #667eea; text-decoration: none; font-size: 14px;">← 上传文件</a>
       <span style="color: #ccc; margin: 0 10px;">|</span>
       <a href="/download.html" style="color: #667eea; text-decoration: none; font-size: 14px;">下载文件 →</a>
+    </div>
+  </div>
+
+  <div class="modal" id="passwordModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">设置访问密码</h3>
+        <span class="close-btn" id="closeModal">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-error" id="modalErrorAlert"></div>
+        <div class="alert alert-success" id="modalSuccessAlert"></div>
+        <div class="setting-row">
+          <label for="modalPassword">新密码</label>
+          <input type="password" id="modalPassword" placeholder="留空则移除密码" maxlength="32">
+        </div>
+        <div class="hint" style="margin-left: 135px;">4-32位，留空将移除访问密码</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelModalBtn">取消</button>
+        <button class="btn" id="confirmModalBtn">确认</button>
+      </div>
     </div>
   </div>
 

@@ -6,6 +6,7 @@ const CodeManager = require('./codeManager');
 const DataStore = require('./dataStore');
 const ExpiryChecker = require('./expiryChecker');
 const DownloadManager = require('./downloadManager');
+const PasswordManager = require('./passwordManager');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -33,7 +34,8 @@ class UploadHandler {
     const {
       maxDownloads = config.DEFAULT_MAX_DOWNLOADS,
       expiryHours = config.DEFAULT_EXPIRY_HOURS,
-      customCode = null
+      customCode = null,
+      accessPassword = null
     } = options;
 
     let code;
@@ -50,6 +52,15 @@ class UploadHandler {
       code = CodeManager.generateUniqueCode();
     }
 
+    let hashedPassword = null;
+    if (accessPassword && accessPassword.trim()) {
+      const passwordValidation = PasswordManager.validatePassword(accessPassword);
+      if (!passwordValidation.valid) {
+        throw new Error(passwordValidation.message);
+      }
+      hashedPassword = PasswordManager.hashPassword(passwordValidation.password);
+    }
+
     const expiryTime = Date.now() + (expiryHours * 60 * 60 * 1000);
 
     const share = {
@@ -64,7 +75,10 @@ class UploadHandler {
       maxDownloads: parseInt(maxDownloads),
       downloadCount: 0,
       status: 'active',
-      ip: null
+      ip: null,
+      accessPassword: hashedPassword,
+      passwordAttempts: [],
+      passwordLockedUntil: null
     };
 
     DataStore.addShare(share);
@@ -77,12 +91,13 @@ class UploadHandler {
       expiryTime: share.expiryTime,
       maxDownloads: share.maxDownloads,
       downloadCount: share.downloadCount,
-      uploadTime: share.uploadTime
+      uploadTime: share.uploadTime,
+      hasPassword: !!hashedPassword
     };
   }
 
-  static async startDownload(code, ip, userAgent) {
-    return DownloadManager.startDownload(code, ip, userAgent);
+  static async startDownload(code, ip, userAgent, accessPassword = null) {
+    return DownloadManager.startDownload(code, ip, userAgent, accessPassword);
   }
 
   static async finalizeDownload(code, success, willReachLimit) {
@@ -98,6 +113,7 @@ class UploadHandler {
     const share = verification.share;
     const check = ExpiryChecker.isShareValid(share);
     const isCurrentlyDownloading = DataStore.isDownloading(code);
+    const hasPassword = !!share.accessPassword;
 
     return {
       code: share.code,
@@ -108,7 +124,9 @@ class UploadHandler {
       maxDownloads: share.maxDownloads,
       downloadCount: share.downloadCount,
       status: ExpiryChecker.getShareStatus(share),
-      canDownload: check.valid && !isCurrentlyDownloading
+      canDownload: check.valid && !isCurrentlyDownloading,
+      requiresPassword: hasPassword,
+      hasPassword: hasPassword
     };
   }
 }

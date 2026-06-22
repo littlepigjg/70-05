@@ -12,6 +12,7 @@ const resultCard = document.getElementById('resultCard');
 const errorAlert = document.getElementById('errorAlert');
 const successAlert = document.getElementById('successAlert');
 const customCodeInput = document.getElementById('customCode');
+const accessPasswordInput = document.getElementById('accessPassword');
 
 let selectedFile = null;
 
@@ -92,9 +93,15 @@ uploadBtn.addEventListener('click', async () => {
   const expiryHours = document.getElementById('expiryHours').value;
   const maxDownloads = document.getElementById('maxDownloads').value;
   const customCode = customCodeInput.value.trim();
+  const accessPassword = accessPasswordInput.value.trim();
 
   if (customCode && (customCode.length < 4 || customCode.length > 8)) {
     showAlert(errorAlert, '自定义提取码长度必须在4-8位之间');
+    return;
+  }
+
+  if (accessPassword && accessPassword.length < 4) {
+    showAlert(errorAlert, '访问密码长度至少为4位');
     return;
   }
 
@@ -108,6 +115,9 @@ uploadBtn.addEventListener('click', async () => {
   formData.append('maxDownloads', maxDownloads);
   if (customCode) {
     formData.append('customCode', customCode);
+  }
+  if (accessPassword) {
+    formData.append('accessPassword', accessPassword);
   }
 
   try {
@@ -136,6 +146,7 @@ uploadBtn.addEventListener('click', async () => {
           document.getElementById('resultMaxDownloads').textContent = 
             data.maxDownloads === -1 ? '不限制' : data.maxDownloads + ' 次';
           document.getElementById('resultLink').textContent = data.shareUrl;
+          document.getElementById('resultHasPassword').textContent = data.hasPassword ? '已设置' : '未设置';
           
           resultCard.classList.add('show');
           showAlert(successAlert, '分享创建成功！');
@@ -145,6 +156,7 @@ uploadBtn.addEventListener('click', async () => {
           fileInfo.classList.remove('show');
           settings.style.display = 'none';
           customCodeInput.value = '';
+          accessPasswordInput.value = '';
         } else {
           showAlert(errorAlert, response.message || '上传失败');
           uploadBtn.disabled = false;

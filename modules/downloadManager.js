@@ -5,9 +5,10 @@ const DataStore = require('./dataStore');
 const ExpiryChecker = require('./expiryChecker');
 const lockManager = require('./lockManager');
 const transactionManager = require('./transactionManager');
+const PasswordManager = require('./passwordManager');
 
 class DownloadManager {
-  static async startDownload(code, ip, userAgent) {
+  static async startDownload(code, ip, userAgent, accessPassword = null) {
     const lockKey = `download:${code}`;
     const lockHandle = await lockManager.acquire(lockKey);
 
@@ -16,6 +17,13 @@ class DownloadManager {
         const share = DataStore.getShareByCode(code);
         if (!share) {
           throw new Error('提取码不存在');
+        }
+
+        if (share.accessPassword) {
+          const passwordResult = PasswordManager.verifyAccess(code, accessPassword, ip);
+          if (!passwordResult.success) {
+            throw new Error(passwordResult.message);
+          }
         }
 
         const validation = ExpiryChecker.isShareValid(share);

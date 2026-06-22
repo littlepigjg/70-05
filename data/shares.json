@@ -1,1 +1,19 @@
-[]
+[
+  {
+    "id": "f8b89ef3-6d69-48b9-80dc-8a566f6324f8",
+    "code": "ES42Y4",
+    "filename": "40a7d0bf-790f-4c8c-8484-1ca9ffd33acf.txt",
+    "originalName": "test_file.txt",
+    "size": 52,
+    "mimetype": "text/plain",
+    "uploadTime": 1782115278426,
+    "expiryTime": 1782201678426,
+    "maxDownloads": 10,
+    "downloadCount": 0,
+    "status": "active",
+    "ip": null,
+    "accessPassword": "429bb536c9e67745bd6ca2835bde4264:35a83e62a05bb7151067faf7dbbfaa6295bdcdcb382c4bb1df2f7a136990885a824db8f5a37c706b8b12f7c21d1a830e6834a6284590197a8a82b8b1ad655931",
+    "passwordAttempts": [],
+    "passwordLockedUntil": null
+  }
+]

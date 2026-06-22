@@ -3,6 +3,7 @@ const router = express.Router();
 const DataStore = require('../modules/dataStore');
 const ExpiryChecker = require('../modules/expiryChecker');
 const CleanupTask = require('../modules/cleanupTask');
+const PasswordManager = require('../modules/passwordManager');
 
 router.get('/shares', (req, res) => {
   try {
@@ -10,7 +11,10 @@ router.get('/shares', (req, res) => {
       ...share,
       statusText: ExpiryChecker.getShareStatus(share),
       isExpired: ExpiryChecker.isExpired(share),
-      isLimitReached: ExpiryChecker.isDownloadLimitReached(share)
+      isLimitReached: ExpiryChecker.isDownloadLimitReached(share),
+      hasPassword: !!share.accessPassword,
+      isLocked: !!(share.passwordLockedUntil && share.passwordLockedUntil > Date.now()),
+      accessPassword: undefined
     })).sort((a, b) => b.uploadTime - a.uploadTime);
 
     res.json({
@@ -98,6 +102,68 @@ router.delete('/share/:code', async (req, res) => {
       success: true,
       message: '删除成功'
     });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+router.post('/share/:code/password', async (req, res) => {
+  try {
+    const code = req.params.code;
+    const password = req.body.password;
+
+    const result = PasswordManager.setPassword(code, password);
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+router.delete('/share/:code/password', async (req, res) => {
+  try {
+    const code = req.params.code;
+    const result = PasswordManager.removePassword(code);
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+router.post('/share/:code/unlock', async (req, res) => {
+  try {
+    const code = req.params.code;
+    const result = PasswordManager.resetFailedAttempts(code);
+
+    if (result) {
+      res.json({
+        success: true,
+        message: '已解锁，密码错误次数已重置'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: '分享不存在'
+      });
+    }
   } catch (err) {
     res.status(500).json({
       success: false,

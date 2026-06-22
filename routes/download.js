@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const UploadHandler = require('../modules/uploadHandler');
+const PasswordManager = require('../modules/passwordManager');
 
 router.get('/info/:code', (req, res) => {
   try {
@@ -9,6 +10,23 @@ router.get('/info/:code', (req, res) => {
       success: true,
       data: info
     });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+router.post('/verify-password/:code', (req, res) => {
+  try {
+    const code = req.params.code;
+    const password = req.body.password;
+    const ip = req.ip || req.connection.remoteAddress ||
+               req.headers['x-forwarded-for'] || req.headers['x-real-ip'];
+
+    const result = PasswordManager.verifyAccess(code, password, ip);
+    res.json(result);
   } catch (err) {
     res.status(400).json({
       success: false,
@@ -45,9 +63,10 @@ router.post('/:code', async (req, res) => {
     const ip = req.ip || req.connection.remoteAddress ||
                req.headers['x-forwarded-for'] || req.headers['x-real-ip'];
     const userAgent = req.headers['user-agent'] || '';
+    const accessPassword = req.body.accessPassword;
 
     console.log(`[${new Date().toLocaleString()}] ========== 下载请求开始: ${code}, IP: ${ip} ==========`);
-    downloadSession = await UploadHandler.startDownload(code, ip, userAgent);
+    downloadSession = await UploadHandler.startDownload(code, ip, userAgent, accessPassword);
     willReachLimit = downloadSession.willReachLimit || false;
     console.log(`[${new Date().toLocaleString()}] 下载会话创建成功: ${code}, 当前次数: ${downloadSession.share.downloadCount}/${downloadSession.share.maxDownloads === -1 ? '∞' : downloadSession.share.maxDownloads}, willReachLimit=${willReachLimit}`);
 

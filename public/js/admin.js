@@ -5,6 +5,17 @@ const sharesEmpty = document.getElementById('sharesEmpty');
 const logsEmpty = document.getElementById('logsEmpty');
 const refreshBtn = document.getElementById('refreshBtn');
 const cleanupBtn = document.getElementById('cleanupBtn');
+const passwordModal = document.getElementById('passwordModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalPassword = document.getElementById('modalPassword');
+const closeModal = document.getElementById('closeModal');
+const cancelModalBtn = document.getElementById('cancelModalBtn');
+const confirmModalBtn = document.getElementById('confirmModalBtn');
+const modalErrorAlert = document.getElementById('modalErrorAlert');
+const modalSuccessAlert = document.getElementById('modalSuccessAlert');
+
+let currentModalCode = null;
+let currentModalAction = null;
 
 function formatFileSize(bytes) {
   if (bytes === 0) return '0 B';
@@ -126,9 +137,26 @@ async function loadShares() {
           <td>${share.maxDownloads === -1 ? '∞' : share.maxDownloads}</td>
           <td>${getStatusBadge(share)}</td>
           <td>
-            ${share.status === 'active' ? `
-              <button class="btn btn-danger" onclick="deleteShare('${share.code}')">删除</button>
-            ` : share.status === 'downloading' ? '下载中' : '-'}
+            ${share.hasPassword ? `
+              <span class="status-badge status-active">🔐 已设置</span>
+              ${share.isLocked ? '<br><span class="status-badge status-expired">🔒 已锁定</span>' : ''}
+            ` : '<span class="status-badge status-deleted">未设置</span>'}
+          </td>
+          <td>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+              ${share.status === 'active' ? `
+                <button class="btn btn-danger btn-small" onclick="deleteShare('${share.code}')">删除</button>
+                <button class="btn btn-secondary btn-small" onclick="openPasswordModal('${share.code}', '${share.hasPassword ? 'edit' : 'set'}')">
+                  ${share.hasPassword ? '修改密码' : '设置密码'}
+                </button>
+                ${share.hasPassword ? `
+                  <button class="btn btn-secondary btn-small" onclick="removePassword('${share.code}')">移除密码</button>
+                ` : ''}
+                ${share.isLocked ? `
+                  <button class="btn btn-secondary btn-small" onclick="unlockShare('${share.code}')">解锁</button>
+                ` : ''}
+              ` : share.status === 'downloading' ? '下载中' : '-'}
+            </div>
           </td>
         </tr>
       `).join('');
@@ -237,7 +265,138 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
 refreshBtn.addEventListener('click', loadAll);
 cleanupBtn.addEventListener('click', forceCleanup);
 
+function openPasswordModal(code, action) {
+  currentModalCode = code;
+  currentModalAction = action;
+  modalTitle.textContent = action === 'edit' ? '修改访问密码' : '设置访问密码';
+  modalPassword.value = '';
+  modalErrorAlert.classList.remove('show');
+  modalSuccessAlert.classList.remove('show');
+  passwordModal.style.display = 'flex';
+  modalPassword.focus();
+}
+
+function closePasswordModal() {
+  passwordModal.style.display = 'none';
+  currentModalCode = null;
+  currentModalAction = null;
+  modalPassword.value = '';
+  modalErrorAlert.classList.remove('show');
+  modalSuccessAlert.classList.remove('show');
+}
+
+async function setPassword() {
+  if (!currentModalCode) return;
+
+  const password = modalPassword.value.trim();
+
+  if (password && password.length < 4) {
+    showModalAlert(modalErrorAlert, '密码长度至少为4位');
+    return;
+  }
+
+  confirmModalBtn.disabled = true;
+  confirmModalBtn.textContent = '处理中...';
+
+  try {
+    const response = await fetch(`/api/admin/share/${currentModalCode}/password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ password: password || null })
+    });
+    const data = await response.json();
+
+    if (data.success) {
+      showModalAlert(modalSuccessAlert, data.message);
+      setTimeout(() => {
+        closePasswordModal();
+        loadAll();
+      }, 1000);
+    } else {
+      showModalAlert(modalErrorAlert, data.message);
+    }
+  } catch (err) {
+    showModalAlert(modalErrorAlert, '网络错误，请重试');
+  } finally {
+    confirmModalBtn.disabled = false;
+    confirmModalBtn.textContent = '确认';
+  }
+}
+
+async function removePassword(code) {
+  if (!confirm(`确定要移除提取码为 ${code} 的访问密码吗？`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/admin/share/${code}/password`, {
+      method: 'DELETE'
+    });
+    const data = await response.json();
+
+    if (data.success) {
+      alert(data.message);
+      loadAll();
+    } else {
+      alert('操作失败: ' + data.message);
+    }
+  } catch (err) {
+    alert('操作失败，请重试');
+  }
+}
+
+async function unlockShare(code) {
+  if (!confirm(`确定要解锁提取码为 ${code} 的分享吗？这将重置密码错误次数。`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/admin/share/${code}/unlock`, {
+      method: 'POST'
+    });
+    const data = await response.json();
+
+    if (data.success) {
+      alert(data.message);
+      loadAll();
+    } else {
+      alert('操作失败: ' + data.message);
+    }
+  } catch (err) {
+    alert('操作失败，请重试');
+  }
+}
+
+function showModalAlert(element, message) {
+  element.textContent = message;
+  element.classList.add('show');
+  setTimeout(() => {
+    element.classList.remove('show');
+  }, 3000);
+}
+
+closeModal.addEventListener('click', closePasswordModal);
+cancelModalBtn.addEventListener('click', closePasswordModal);
+confirmModalBtn.addEventListener('click', setPassword);
+
+modalPassword.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    confirmModalBtn.click();
+  }
+});
+
+passwordModal.addEventListener('click', (e) => {
+  if (e.target === passwordModal) {
+    closePasswordModal();
+  }
+});
+
 window.deleteShare = deleteShare;
+window.openPasswordModal = openPasswordModal;
+window.removePassword = removePassword;
+window.unlockShare = unlockShare;
 
 loadAll();
 

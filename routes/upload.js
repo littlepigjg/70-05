@@ -14,7 +14,8 @@ router.post('/', UploadHandler.getUploadMiddleware(), async (req, res) => {
     const options = {
       maxDownloads: req.body.maxDownloads,
       expiryHours: req.body.expiryHours,
-      customCode: req.body.customCode
+      customCode: req.body.customCode,
+      accessPassword: req.body.accessPassword
     };
 
     const result = await UploadHandler.createShare(req.file, options);
